@@ -1,21 +1,23 @@
-module.exports = async (req, res) => {
-      const fullUrl = `${req.protocol}://${req.headers.host}${req.url}`;
-      const url = new URL(fullUrl);
-      const target = url.searchParams.get('target')
-      const source = url.searchParams.get('source')
-      const textArray = url.searchParams.getAll('text')
-      const getRaw = url.searchParams.get('getraw')
-      const translator = url.searchParams.get('te')
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request))
+})
 
-      const generateSid = () => {
-        var t, e, n = Date.now().toString(16)
-        for (t = 0, e = 16 - n.length; t < e; t++) {
-          n += Math.floor(16 * Math.random()).toString(16)
-        }
-        return n
-      }
+async function handleRequest(request) {
+  const url = new URL(request.url)
+  const target = url.searchParams.get('target')
+  const source = url.searchParams.get('source')
+  const textArray = url.searchParams.getAll('text')
+  const getRaw = url.searchParams.get('getraw')
+  const translator = url.searchParams.get('te')
 
-  const supportedLanguageList = ["af","sq","am","ar","hy","az","ba","eu","be","bn","bs","bg","my","ca","ceb","zh","cv","hr","cs","da","nl","sjn","emj","en","eo","et","fi","fr","gl","ka","de","el","gu","ht","he","mrj","hi","hu","is","id","ga","it","ja","jv","kn","kk","kazlat","km","ko","ky","lo","la","lv","lt","lb","mk","mg","ms","ml","mt","mi","mr","mhr","mn","ne","no","pap","fa","pl","pt","pt-BR","pa","ro","ru","gd","sr","si","sk","sl","es","su","sw","sv","tl","tg","ta","tt","te","th","tr","udm","uk","ur","uz","uzbcyr","vi","cy","xh","sah","yi","zu"]
+  const generateSid = () => {
+    var t, e, n = Date.now().toString(16)
+    for (t = 0, e = 16 - n.length; t < e; t++) {
+      n += Math.floor(16 * Math.random()).toString(16)
+    }
+    return n
+  }
+
 
   let query = new URLSearchParams({
     translateMode: 'context',
@@ -58,54 +60,3 @@ module.exports = async (req, res) => {
     }
   }
 }
-
-async function translateWithMicrosoftTranslator(source, target, textArray) {
-  const jwtResponse = await fetch('https://edge.microsoft.com/translate/auth', {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.2272 YaBrowser/23.9.0.2272 Yowser/2.5 Safari/537.36',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept-Language': 'ru,en;q=0.9',
-      'DNT': '1',
-      'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24", "YaBrowser";v="23"',
-      'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': '"Windows"',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1',
-    }
-  })
-  const jwt = await jwtResponse.text()
-  console.log('JWT:', jwt)
-  const url = `https://api.cognitive.microsofttranslator.com/translate?from=${source}&to=${target}&api-version=3.0&includeSentenceLength=true`
-  const body = JSON.stringify(textArray.map(text => ({ Text: text })))
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${jwt}`,
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.2272 YaBrowser/23.9.0.2272 Yowser/2.5 Safari/537.36',
-      'Accept': 'application/json',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept-Language': 'ru,en;q=0.9',
-      'DNT': '1',
-      'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24", "YaBrowser";v="23"',
-      'sec-ch-ua-mobile': '?0',
-      'sec-ch-ua-platform': '"Windows"',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Sec-Fetch-User': '?1',
-      'Upgrade-Insecure-Requests': '1',
-      
-    },
-    body: body,
-  })
-
-  const content = await response.json()
-  return content
-}
-
