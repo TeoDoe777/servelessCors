@@ -1,6 +1,8 @@
 module.exports = async (req, res) => {
   try {
-    const response = await fetch('https://worker-bold-math-0d6b.sn-storage.workers.dev/?target=en&source=&te=2&text=привет&getraw=true');
+    const target = req.query.target || 'en';
+    const text = req.query.text || 'пример мир';
+    const response = await fetch(`https://translate.sn-storage.workers.dev/?target=${target}&source=ru&te=2&text=${text}&getraw=true`);
     const data = await response.text();
     res.status(200).send(data);
   } catch (error) {
