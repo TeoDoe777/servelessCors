@@ -1,5 +1,6 @@
 module.exports = async (req, res) => {
-      const url = new URL(req.url)
+      const fullUrl = `${req.protocol}://${req.headers.host}${req.url}`;
+      const url = new URL(fullUrl);
       const target = url.searchParams.get('target')
       const source = url.searchParams.get('source')
       const textArray = url.searchParams.getAll('text')
