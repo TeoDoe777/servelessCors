@@ -5,7 +5,9 @@ async function handleRequest(request) {
   const textArray = request.query.text;
   const getRaw = request.query.getraw;
   const translator = request.query.te;
-
+ if (typeof textArray === 'string') {
+   textArray = textArray.split(',');
+ }
   const generateSid = () => {
     var t, e, n = Date.now().toString(16)
     for (t = 0, e = 16 - n.length; t < e; t++) {
