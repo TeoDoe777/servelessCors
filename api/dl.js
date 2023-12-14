@@ -1,10 +1,9 @@
 // Ссылка для тестирования
-const testUrl = 'https://sharemods.com/rw4fg79bnavw/1gbTest.html';
 
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
 
+module.exports = async (req, res) => {
+      const request = req;
+      const testUrl = 'https://sharemods.com/rw4fg79bnavw/1gbTest.html';
 const cache = caches.default;
 
 async function handleRequest(request) {
@@ -63,3 +62,4 @@ async function handleRequest(request) {
     return new Response('Unable to process the request', { status: 500 });
   }
 }
+};
