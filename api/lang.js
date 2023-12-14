@@ -1,13 +1,15 @@
 
 async function handleRequest(request) {
-  const target = request.query.target;
-  const source = request.query.source;
-  const textArray = request.query.text;
-  const getRaw = request.query.getraw;
-  const translator = request.query.te;
- if (typeof textArray === 'string') {
-   textArray = textArray.split(',');
- }
+const target = request.query.target;
+const source = request.query.source;
+let textArray = request.query.text;
+const getRaw = request.query.getraw;
+const translator = request.query.te;
+
+// Если textArray является строкой, преобразуем его в массив
+if (typeof textArray === 'string') {
+  textArray = textArray.split(',');
+}
   const generateSid = () => {
     var t, e, n = Date.now().toString(16)
     for (t = 0, e = 16 - n.length; t < e; t++) {
