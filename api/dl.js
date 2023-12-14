@@ -4,7 +4,6 @@
 module.exports = async (req, res) => {
       const request = req;
       const testUrl = 'https://sharemods.com/rw4fg79bnavw/1gbTest.html';
-const cache = caches.default;
 
 async function handleRequest(request) {
   const clientIp = request.headers.get('cf-connecting-ip'); // Получаем IP клиента через Cloudflare
