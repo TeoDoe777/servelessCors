@@ -1,11 +1,10 @@
 
 async function handleRequest(request) {
-  const url = new URL(request.url)
-  const target = url.searchParams.get('target')
-  const source = url.searchParams.get('source')
-  const textArray = url.searchParams.getAll('text')
-  const getRaw = url.searchParams.get('getraw')
-  const translator = url.searchParams.get('te')
+  const target = request.query.target;
+  const source = request.query.source;
+  const textArray = request.query.text;
+  const getRaw = request.query.getraw;
+  const translator = request.query.te;
 
   const generateSid = () => {
     var t, e, n = Date.now().toString(16)
