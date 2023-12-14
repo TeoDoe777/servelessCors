@@ -1,22 +1,18 @@
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
+module.exports = async (req, res) => {
+      const url = new URL(req.url)
+      const target = url.searchParams.get('target')
+      const source = url.searchParams.get('source')
+      const textArray = url.searchParams.getAll('text')
+      const getRaw = url.searchParams.get('getraw')
+      const translator = url.searchParams.get('te')
 
-async function handleRequest(request) {
-  const url = new URL(request.url)
-  const target = url.searchParams.get('target')
-  const source = url.searchParams.get('source')
-  const textArray = url.searchParams.getAll('text')
-  const getRaw = url.searchParams.get('getraw')
-  const translator = url.searchParams.get('te')
-
-  const generateSid = () => {
-    var t, e, n = Date.now().toString(16)
-    for (t = 0, e = 16 - n.length; t < e; t++) {
-      n += Math.floor(16 * Math.random()).toString(16)
-    }
-    return n
-  }
+      const generateSid = () => {
+        var t, e, n = Date.now().toString(16)
+        for (t = 0, e = 16 - n.length; t < e; t++) {
+          n += Math.floor(16 * Math.random()).toString(16)
+        }
+        return n
+      }
 
   const supportedLanguageList = ["af","sq","am","ar","hy","az","ba","eu","be","bn","bs","bg","my","ca","ceb","zh","cv","hr","cs","da","nl","sjn","emj","en","eo","et","fi","fr","gl","ka","de","el","gu","ht","he","mrj","hi","hu","is","id","ga","it","ja","jv","kn","kk","kazlat","km","ko","ky","lo","la","lv","lt","lb","mk","mg","ms","ml","mt","mi","mr","mhr","mn","ne","no","pap","fa","pl","pt","pt-BR","pa","ro","ru","gd","sr","si","sk","sl","es","su","sw","sv","tl","tg","ta","tt","te","th","tr","udm","uk","ur","uz","uzbcyr","vi","cy","xh","sah","yi","zu"]
 
