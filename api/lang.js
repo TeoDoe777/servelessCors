@@ -1,6 +1,6 @@
-addEventListener('fetch', event => {
+exports.handleRequest = async function(request) {
   event.respondWith(handleRequest(event.request))
-})
+}
 
 async function handleRequest(request) {
   const url = new URL(request.url)
