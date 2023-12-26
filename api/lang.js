@@ -59,5 +59,5 @@ export default async function handleRequest(request) {
   const content = await response.json()
   return content
 }
-
+}
 
