@@ -1,5 +1,5 @@
 export default async function handleRequest(request) {
- const baseUrl = 'https://serveless-cors.vercel.app/api/lang'; // Замените на ваш домен
+ const baseUrl = 'https://klondike-gate.vercel.app/api/lang'; // Замените на ваш домен
  const fullUrl = new URL(baseUrl + request.url);
  const target = fullUrl.searchParams.get('target');
  const source = fullUrl.searchParams.get('source');
