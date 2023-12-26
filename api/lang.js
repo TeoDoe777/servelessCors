@@ -1,10 +1,11 @@
 export default async function handleRequest(request) {
-  const url = new URL(request.url)
-  const target = url.searchParams.get('target')
-  const source = url.searchParams.get('source')
-  const textArray = url.searchParams.getAll('text')
-  const getRaw = url.searchParams.get('getraw')
-  const translator = url.searchParams.get('te')
+ const baseUrl = 'https://serveless-cors-phi.vercel.app/api/lang'; // Замените на ваш домен
+ const fullUrl = new URL(baseUrl + request.url);
+ const target = fullUrl.searchParams.get('target');
+ const source = fullUrl.searchParams.get('source');
+ const textArray = fullUrl.searchParams.getAll('text');
+ const getRaw = fullUrl.searchParams.get('getraw');
+ const translator = fullUrl.searchParams.get('te');
 
   const generateSid = () => {
     var t, e, n = Date.now().toString(16)
