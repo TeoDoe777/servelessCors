@@ -27,25 +27,37 @@ async function handleRequest(request) {
 
  let translationUrl = 'https://browser.translate.yandex.net/api/v1/tr.json/translate?' + query.toString() + '&text=' + (textArray.map(text => encodeURIComponent(text)).join('&text='))
 
- const response = await fetch(translationUrl, {
-   headers: {
-     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.2272 YaBrowser/23.9.0.2272 Yowser/2.5 Safari/537.36'
-   }
- })
- const content = await response.json()
-
- // Удаление "align" из ответа
- delete content.align;
-
- if (getRaw === 'true') {
-   const translations = content.text.join('\n');
+ if (translator === '2') {
+   const content = await translateWithMicrosoftTranslator(source || '', target, textArray)
+   const translations = content.map(item => item.translations[0].text).join('\n')
    return new Response(translations, {
      headers: { 'content-type': 'text/plain' },
    })
  } else {
-   return new Response(JSON.stringify(content), {
-     headers: { 'content-type': 'application/json' },
-   })
+   const responsePromise = fetch(translationUrl, {
+     headers: {
+       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.5845.2272 YaBrowser/23.9.0.2272 Yowser/2.5 Safari/537.36'
+     }
+   });
+
+   const contentPromise = responsePromise.then(response => response.json());
+
+   const [response, content] = await Promise.all([responsePromise, contentPromise]);
+
+   // Удаление "align" из ответа
+   delete content.align;
+
+   if (getRaw === 'true') {
+     const translations = content.text.join('\n');
+     return new Response(translations, {
+       headers: { 'content-type': 'text/plain' },
+     })
+   } else {
+     return new Response(JSON.stringify(content), {
+       headers: { 'content-type': 'application/json' },
+     })
+   }
  }
 }
+
 module.exports = handleRequest;
