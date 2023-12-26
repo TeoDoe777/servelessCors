@@ -1,4 +1,4 @@
-export default async function handleRequest(request) {
+async function handleRequest(request) {
  const baseUrl = 'https://klondike-gate.vercel.app/api/lang'; // Замените на ваш домен
  const fullUrl = new URL(baseUrl + request.url);
  const target = fullUrl.searchParams.get('target');
