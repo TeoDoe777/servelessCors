@@ -3,17 +3,14 @@ module.exports = async (req, res) => {
  const { url } = req.query;
 
  if (method !== "GET") {
-   const responseMessage = "This is a GET only cors proxy. See https://github.com/SirJosh3917/cors-get-proxy";
+   const responseMessage = "";
    
    return res.status(405).send(responseMessage);
  }
 
  if (url === undefined) {
    const responseMessage =
-     "Bad usage! http://cors-get-proxy.sirjosh.workers.dev/?url=<put the url here>\n" +
-     "Repo at https://github.com/SirJosh3917/cors-get-proxy\n" +
-     "2022-05-26 update: Added `cors-get-proxy.sirjosh.workers.dev` to the User-Agent of this service.";
-
+     "Bad usage! /?url=<put the url here>\n" 
    return res.status(400).send(responseMessage);
  }
 
