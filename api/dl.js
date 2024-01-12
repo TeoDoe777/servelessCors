@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
   const key = req.query.k || false;
 
   if (key !== false) {
-    const json = fs.readFileSync('https://lastrium.com/LaJson.json', 'utf8');
+    const json = fs.readFileSync('LaJson.json', 'utf8');
     const links = JSON.parse(json);
 
     if (!links[key]) {
