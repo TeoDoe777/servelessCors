@@ -1,13 +1,13 @@
 const fetch = require('node-fetch');
-const fs = require('fs');
+
 
 module.exports = async (req, res) => {
   const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
   const key = req.query.k || false;
 
   if (key !== false) {
-    const json = fs.readFileSync('https://cdn.jsdelivr.net/gh/TeoDoe777/servelessCors/LaJson.json', 'utf8');
-    const links = JSON.parse(json);
+   const response = await fetch('https://cdn.jsdelivr.net/gh/TeoDoe777/servelessCors/LaJson.json');
+    const json = await response.json();
 
     if (!links[key]) {
       const keyWithoutSlash = key.replace(/\/$/, '');
