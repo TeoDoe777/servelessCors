@@ -2,38 +2,25 @@ const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
- const key = req.query.k || false;
+ const url = req.query.l || false;
 
- if (key !== false) {
-   const response = await fetch('https://cdn.jsdelivr.net/gh/TeoDoe777/servelessCors/LaJson.json');
-   const json = await response.json();
-   const links = json.links;
+ if (url !== false) {
+  let link = url;
+  const host = new URL(link).hostname;
 
-   if (!links[key]) {
-     const keyWithoutSlash = key.replace(/\/$/, '');
-     if (links[keyWithoutSlash]) {
-       key = keyWithoutSlash;
-     }
-   }
+  if (['sharemods.com', 'modsbase.com'].includes(host)) {
+    link = await sharemodsLogic(link, ip);
+  } else if (host === 'modsfire.com') {
+    link = await modsfireLogic(link);
+  } else if (host === 'simfileshare.net') {
+    link = simfileshare(link, ip);
+  }
 
-   if (links[key]) {
-     let link = links[key]['link'];
-     const host = new URL(link).hostname;
-
-     if (['sharemods.com', 'modsbase.com'].includes(host)) {
-       link = await sharemodsLogic(link, ip);
-     } else if (host === 'modsfire.com') {
-       link = await modsfireLogic(link);
-     } else if (host === 'simfileshare.net') {
-       link = simfileshare(link, ip);
-     }
-
-     res.writeHead(302, { Location: link });
-     return res.end();
-   }
+  res.writeHead(302, { Location: link });
+  return res.end();
  }
 
- res.status(400).send('Key not found');
+ res.status(400).send('URL not found');
 };
 
 async function sharemodsLogic(decrypted_link, ip) {
