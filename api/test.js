@@ -9,6 +9,6 @@ async function fetchJson(url) {
    }
 }
 
-fetchJson('https://klondike-gate.vercel.app/api/dl?k=test1')
+fetchJson('https://cors.eu.org/https://klondike-gate.vercel.app/api/dl?k=test1')
    .then(data => console.log(data))
    .catch(error => console.log('An error occurred: ', error));
