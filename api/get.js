@@ -1,75 +1,112 @@
-module.exports = async (req, res) => {
-   // Заголовки запроса и ответа
-   let reqHeaders = req.headers,
-       outBody, outStatus = 200,
-       outStatusText = 'OK',
-       outCt = null,
-       outHeaders = {
-           "Access-Control-Allow-Origin": "*",
-           "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-           "Access-Control-Allow-Headers": reqHeaders['access-control-request-headers'] || "Accept, Authorization, Cache-Control, Content-Type, DNT, If-Modified-Since, Keep-Alive, Origin, User-Agent, X-Requested-With, Token, x-access-token"
-       };
+exports.handler = async function(event, context) {
+ let reqHeaders = event.headers,
+     outBody, outStatus = 200,
+     outStatusText = 'OK',
+     outCt = null,
+     outHeaders = {
+         "Access-Control-Allow-Origin": "*",
+         "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+         "Access-Control-Allow-Headers": reqHeaders['Access-Control-Allow-Headers'] || "Accept, Authorization, Cache-Control, Content-Type, DNT, If-Modified-Since, Keep-Alive, Origin, User-Agent, X-Requested-With, Token, x-access-token"
+     };
 
-   try {
-       // Извлечение URL из запроса
-       let targetUrl = req.query.url;
-       if (!targetUrl) {
-           throw new Error('URL parameter is missing');
-       }
+ try {
+     let url = event.path.substr(8);
+     url = decodeURIComponent(url.substr(url.indexOf('/') + 1));
 
-       // Проверка на недопустимые методы
-       if (req.method === "OPTIONS" || !targetUrl.includes('.')) {
-           outBody = 'Method not allowed';
-           outStatus = 405;
-           res.status(outStatus).send(outBody);
-           return;
-       }
+     if (event.httpMethod == "OPTIONS" || url.length < 3 || url.indexOf('.') == -1 || url == "favicon.ico" || url == "robots.txt") {
+         const invalid = !(event.httpMethod == "OPTIONS" || url.length === 0)
+         outBody = JSON.stringify({
+             code: invalid ? 400 : 0,
+             usage: 'Host/{URL}',
+             source: 'https://github.com/netnr/workers',
+             note: 'Blocking a large number of requests, please deploy it yourself'
+         });
+         outCt = "application/json";
+         outStatus = invalid ? 400 : 200;
+     } else {
+         url = fixUrl(url);
 
-       // Конфигурация fetch
-       let fetchConfig = {
-           method: req.method,
-           headers: {}
-       };
+         let options = {
+             hostname: url.split('/')[2],
+             port: 443,
+             path: '/' + url.split('/').slice(3).join('/'),
+             method: event.httpMethod,
+             headers: {}
+         }
 
-       // Копирование заголовков, исключая некоторые
-       const excludedHeaders = ['host', 'referer', 'cf-connecting-ip', 'cf-ray', 'cf-visitor'];
-       for (let key in reqHeaders) {
-           if (!excludedHeaders.includes(key.toLowerCase())) {
-               fetchConfig.headers[key] = reqHeaders[key];
-           }
-       }
+         const dropHeaders = ['content-length', 'content-type', 'host'];
+         for (let key in reqHeaders) {
+             const value = reqHeaders[key];
+             if (!dropHeaders.includes(key)) {
+               options.headers[key] = value;
+             }
+         }
 
-       // Добавление тела запроса для соответствующих методов
-       if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
-           fetchConfig.body = req.body;
-       }
+         if (["POST", "PUT", "PATCH", "DELETE"].indexOf(event.httpMethod) >= 0) {
+             const ct = (reqHeaders['content-type'] || "").toLowerCase();
+             if (ct.includes('application/json')) {
+               options.headers['Content-Length'] = Buffer.byteLength(event.body);
+               options.headers['Content-Type'] = 'application/json';
+               options.body = event.body;
+             } else if (ct.includes('application/text') || ct.includes('text/html')) {
+               options.headers['Content-Length'] = Buffer.byteLength(event.body);
+               options.headers['Content-Type'] = 'text/plain';
+               options.body = event.body;
+             } else if (ct.includes('form')) {
+               options.headers['Content-Length'] = Buffer.byteLength(event.body);
+               options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+               options.body = event.body;
+             } else {
+               options.headers['Content-Length'] = Buffer.byteLength(event.body);
+               options.headers['Content-Type'] = 'application/octet-stream';
+               options.body = event.body;
+             }
+         }
 
-       // Выполнение запроса
-       let response = await fetch(targetUrl, fetchConfig);
-       outCt = response.headers.get('content-type');
-       outStatus = response.status;
-       outStatusText = response.statusText;
-       outBody = await response.text();
+         let fr = await new Promise((resolve, reject) => {
+             const req = https.request(options, res => {
+                let data = '';
+                res.on('data', chunk => { data += chunk; });
+                res.on('end', () => { resolve({ status: res.statusCode, headers: res.headers, body: data }); });
+             });
+             req.on('error', error => { reject(error); });
+             if (options.body) req.write(options.body);
+             req.end();
+         });
+         outCt = fr.headers['content-type'];
+         outStatus = fr.status;
+         outStatusText = fr.statusText;
+         outBody = fr.body;
+     }
+ } catch (err) {
+     outCt = "application/json";
+     outBody = JSON.stringify({
+         code: -1,
+         msg: JSON.stringify(err.stack) || err
+     });
+     outStatus = 500;
+ }
 
-       // Копирование заголовков ответа
-       for (let [key, value] of Object.entries(response.headers)) {
-           if (!excludedHeaders.includes(key.toLowerCase())) {
-               res.setHeader(key, value);
-           }
-       }
-   } catch (err) {
-       outCt = "application/json";
-       outBody = JSON.stringify({
-           error: err.message
-       });
-       outStatus = 500;
-   }
+ if (outCt && outCt != "") {
+     outHeaders["content-type"] = outCt;
+ }
 
-   // Установка Content-Type
-   if (outCt) {
-       res.setHeader("content-type", outCt);
-   }
+ let response = {
+     statusCode: outStatus,
+     statusDescription: outStatusText,
+     headers: outHeaders,
+     body: outBody
+ }
 
-   // Возврат ответа
-   res.status(outStatus).send(outBody);
-};
+ return response;
+}
+
+function fixUrl(url) {
+ if (url.includes("://")) {
+     return url;
+ } else if (url.includes(':/')) {
+     return url.replace(':/', '://');
+ } else {
+     return "http://" + url;
+ }
+}
