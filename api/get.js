@@ -1,44 +1,82 @@
-module.exports = async (req, res) => {
-   const {
-       method
-   } = req;
-   const {
-       url
-   } = req.query;
+addEventListener('fetch', event => {
+    event.respondWith(handleRequest(event.request))
+})
 
-   if (method !== "GET") {
-       const responseMessage = "";
-       return res.status(405).send(responseMessage);
-   }
+/**
+ * Respond to the request
+ * @param {Request} request
+ */
+async function handleRequest(request) {
+    // Заголовки запроса и ответа
+    let reqHeaders = new Headers(request.headers),
+        outBody, outStatus = 200, outStatusText = 'OK', outCt = null, outHeaders = new Headers({
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+            "Access-Control-Allow-Headers": reqHeaders.get('Access-Control-Request-Headers') || "Accept, Authorization, Cache-Control, Content-Type, DNT, If-Modified-Since, Keep-Alive, Origin, User-Agent, X-Requested-With, Token, x-access-token"
+        });
 
-   if (url === undefined) {
-       const responseMessage = "Bad usage! /?url=<put the url here>\n"
-       return res.status(400).send(responseMessage);
-   }
+    try {
+        // Извлечение URL из запроса
+        let url = new URL(request.url);
+        let targetUrl = url.searchParams.get('url');
+        if (!targetUrl) {
+            throw new Error('URL parameter is missing');
+        }
 
-   const response = await fetch(url, {
-       headers: {
-           "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-           "Accept-Encoding": "gzip, deflate, br",
-           "Accept-Language": "ru,en;q=0.9",
-           "DNT": "1",
-           "sec-ch-ua": '"Chromium";v="118", "YaBrowser";v="23.11", "Not=A?Brand";v="99", "Yowser";v="2.5"',
-           "sec-ch-ua-mobile": "?0",
-           "sec-ch-ua-platform": "Windows",
-           "Sec-Fetch-Dest": "document",
-           "Sec-Fetch-Mode": "navigate",
-           "Sec-Fetch-Site": "none",
-           "Sec-Fetch-User": "?1",
-           "Upgrade-Insecure-Requests": "1",
-           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 YaBrowser/23.11.0.0 Safari/537.36"
-       },
-   });
-   const responseBody = await response.text();
+        // Проверка на недопустимые методы
+        if (request.method === "OPTIONS" || !targetUrl.includes('.')) {
+            outBody = 'Method not allowed';
+            outStatus = 405;
+            return new Response(outBody, { status: outStatus, headers: outHeaders });
+        }
 
-   res.setHeader("Access-Control-Allow-Origin", "*");
-   res.setHeader("Access-Control-Allow-Methods", "GET");
-   res.setHeader("Access-Control-Allow-Headers", "*");
-   res.setHeader("Content-Type", "text/html");
+        // Конфигурация fetch
+        let fetchConfig = {
+            method: request.method,
+            headers: {}
+        };
 
-   return res.send(responseBody);
+        // Копирование заголовков, исключая некоторые
+        const excludedHeaders = ['host', 'referer', 'cf-connecting-ip', 'cf-ray', 'cf-visitor'];
+        for (let [key, value] of reqHeaders) {
+            if (!excludedHeaders.includes(key.toLowerCase())) {
+                fetchConfig.headers[key] = value;
+            }
+        }
+
+        // Добавление тела запроса для соответствующих методов
+        if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method)) {
+            fetchConfig.body = await request.text();
+        }
+
+        // Выполнение запроса
+        let response = await fetch(targetUrl, fetchConfig);
+        outCt = response.headers.get('content-type');
+        outStatus = response.status;
+        outStatusText = response.statusText;
+        outBody = response.body;
+
+        // Копирование заголовков ответа
+        for (let [key, value] of response.headers) {
+            if (!excludedHeaders.includes(key.toLowerCase())) {
+                outHeaders.append(key, value);
+            }
+        }
+    } catch (err) {
+        outCt = "application/json";
+        outBody = JSON.stringify({ error: err.message });
+        outStatus = 500;
+    }
+
+    // Установка Content-Type
+    if (outCt) {
+        outHeaders.set("content-type", outCt);
+    }
+
+    // Возврат ответа
+    return new Response(outBody, {
+        status: outStatus,
+        statusText: outStatusText,
+        headers: outHeaders
+    });
 }
