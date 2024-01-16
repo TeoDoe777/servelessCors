@@ -1,82 +1,75 @@
-addEventListener('fetch', event => {
-    event.respondWith(handleRequest(event.request))
-})
+module.exports = async (req, res) => {
+   // Заголовки запроса и ответа
+   let reqHeaders = req.headers,
+       outBody, outStatus = 200,
+       outStatusText = 'OK',
+       outCt = null,
+       outHeaders = {
+           "Access-Control-Allow-Origin": "*",
+           "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+           "Access-Control-Allow-Headers": reqHeaders['access-control-request-headers'] || "Accept, Authorization, Cache-Control, Content-Type, DNT, If-Modified-Since, Keep-Alive, Origin, User-Agent, X-Requested-With, Token, x-access-token"
+       };
 
-/**
- * Respond to the request
- * @param {Request} request
- */
-async function handleRequest(request) {
-    // Заголовки запроса и ответа
-    let reqHeaders = new Headers(request.headers),
-        outBody, outStatus = 200, outStatusText = 'OK', outCt = null, outHeaders = new Headers({
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": reqHeaders.get('Access-Control-Request-Headers') || "Accept, Authorization, Cache-Control, Content-Type, DNT, If-Modified-Since, Keep-Alive, Origin, User-Agent, X-Requested-With, Token, x-access-token"
-        });
+   try {
+       // Извлечение URL из запроса
+       let targetUrl = req.query.url;
+       if (!targetUrl) {
+           throw new Error('URL parameter is missing');
+       }
 
-    try {
-        // Извлечение URL из запроса
-        let url = new URL(request.url);
-        let targetUrl = url.searchParams.get('url');
-        if (!targetUrl) {
-            throw new Error('URL parameter is missing');
-        }
+       // Проверка на недопустимые методы
+       if (req.method === "OPTIONS" || !targetUrl.includes('.')) {
+           outBody = 'Method not allowed';
+           outStatus = 405;
+           res.status(outStatus).send(outBody);
+           return;
+       }
 
-        // Проверка на недопустимые методы
-        if (request.method === "OPTIONS" || !targetUrl.includes('.')) {
-            outBody = 'Method not allowed';
-            outStatus = 405;
-            return new Response(outBody, { status: outStatus, headers: outHeaders });
-        }
+       // Конфигурация fetch
+       let fetchConfig = {
+           method: req.method,
+           headers: {}
+       };
 
-        // Конфигурация fetch
-        let fetchConfig = {
-            method: request.method,
-            headers: {}
-        };
+       // Копирование заголовков, исключая некоторые
+       const excludedHeaders = ['host', 'referer', 'cf-connecting-ip', 'cf-ray', 'cf-visitor'];
+       for (let key in reqHeaders) {
+           if (!excludedHeaders.includes(key.toLowerCase())) {
+               fetchConfig.headers[key] = reqHeaders[key];
+           }
+       }
 
-        // Копирование заголовков, исключая некоторые
-        const excludedHeaders = ['host', 'referer', 'cf-connecting-ip', 'cf-ray', 'cf-visitor'];
-        for (let [key, value] of reqHeaders) {
-            if (!excludedHeaders.includes(key.toLowerCase())) {
-                fetchConfig.headers[key] = value;
-            }
-        }
+       // Добавление тела запроса для соответствующих методов
+       if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+           fetchConfig.body = req.body;
+       }
 
-        // Добавление тела запроса для соответствующих методов
-        if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method)) {
-            fetchConfig.body = await request.text();
-        }
+       // Выполнение запроса
+       let response = await fetch(targetUrl, fetchConfig);
+       outCt = response.headers.get('content-type');
+       outStatus = response.status;
+       outStatusText = response.statusText;
+       outBody = await response.text();
 
-        // Выполнение запроса
-        let response = await fetch(targetUrl, fetchConfig);
-        outCt = response.headers.get('content-type');
-        outStatus = response.status;
-        outStatusText = response.statusText;
-        outBody = response.body;
+       // Копирование заголовков ответа
+       for (let [key, value] of Object.entries(response.headers)) {
+           if (!excludedHeaders.includes(key.toLowerCase())) {
+               res.setHeader(key, value);
+           }
+       }
+   } catch (err) {
+       outCt = "application/json";
+       outBody = JSON.stringify({
+           error: err.message
+       });
+       outStatus = 500;
+   }
 
-        // Копирование заголовков ответа
-        for (let [key, value] of response.headers) {
-            if (!excludedHeaders.includes(key.toLowerCase())) {
-                outHeaders.append(key, value);
-            }
-        }
-    } catch (err) {
-        outCt = "application/json";
-        outBody = JSON.stringify({ error: err.message });
-        outStatus = 500;
-    }
+   // Установка Content-Type
+   if (outCt) {
+       res.setHeader("content-type", outCt);
+   }
 
-    // Установка Content-Type
-    if (outCt) {
-        outHeaders.set("content-type", outCt);
-    }
-
-    // Возврат ответа
-    return new Response(outBody, {
-        status: outStatus,
-        statusText: outStatusText,
-        headers: outHeaders
-    });
-}
+   // Возврат ответа
+   res.status(outStatus).send(outBody);
+};
